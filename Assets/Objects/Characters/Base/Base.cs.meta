@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 27df760fe3621524d9102681eb8bf782
+timeCreated: 1506033171
+licenseType: Free
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - transform: {instanceID: 0}
+  - rigidbody: {instanceID: 0}
+  - audioSource: {instanceID: 0}
+  - jumpSound: {fileID: 8300000, guid: 884c8e156171c3947bb995b2ab15f999, type: 3}
+  - rollSound: {fileID: 8300000, guid: a86a2d11d43c6ff4abff0da490c7c193, type: 3}
+  - spinChargeSound: {fileID: 8300000, guid: 947c6ed2d73ea004b8bfe5f8da1ed9e6, type: 3}
+  - spinReleaseSound: {fileID: 8300000, guid: 6e044d63fa634324b9754c1b1ce5d27d, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
