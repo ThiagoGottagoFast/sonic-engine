@@ -21,7 +21,7 @@ public class FireShield : Shield {
 		if(damage.projectile != null){
 			return false;
 		}
-		if(damage.DamageType == DamageType.Fire){
+		if(damage.DamageElement == DamageElement.Fire){
 			bounceProjectile(ref damage.projectile);
 			return false;
 		}

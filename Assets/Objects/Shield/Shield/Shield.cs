@@ -36,7 +36,7 @@ namespace SonicEngine{
 		public virtual void onJumpAction(){}
 
 		public virtual bool damage(Damage damage){
-			if(damage.projectile == null){
+			if(damage.damageType != DamageType.Projectile){
 				return true;
 			}
 			bounceProjectile(ref damage.projectile);

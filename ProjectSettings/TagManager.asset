@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Ground
   - Ring
+  - Damage
   layers:
   - Default
   - TransparentFX
@@ -15,8 +16,8 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
+  - Rings
+  - Player
   - 
   - 
   - 

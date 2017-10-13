@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
 using UnityEngine;
+using InControl;
 
 namespace SonicEngine{
-	[RequireComponent(typeof(AudioSource))] public class Base : MonoBehaviour{
+	[RequireComponent(typeof(AudioSource))] 
+	public class Base : MonoBehaviour{
 		public const string Name = "Base test character";
 		
 		public Transform Transform;
@@ -18,11 +20,13 @@ namespace SonicEngine{
 		public byte JumpsToResetTo = 1;
 		public byte JumpsLeft = 1;
 		public bool Jumping;
-		public ushort ForceMult = 60;
+		public ushort XForceMult = 65;
+		public ushort YForceMult = 45;
 		public Status Status;
 
 		public DateTime lastInput = DateTime.Now;
 		public float waitTime;
+		public Vector3 groundAngle;
 		
 		public static ulong Score;
 		public static Stopwatch Time;
@@ -32,9 +36,10 @@ namespace SonicEngine{
 
 		public Shield Shield;
 
+		public InputDevice inputDevice;
+
 #if UNITY_EDITOR
 		public TextMesh DebugText;
-		public Vector3 groundAngle;
 #endif
 
 		private float Angle{
@@ -42,7 +47,7 @@ namespace SonicEngine{
 				if (!InAir){
 					RaycastHit hitA;
 					const int div = 3;
-					if (Physics.Raycast(Transform.position + Transform.forward / div, -Transform.up, out hitA)){
+					if (Physics.Raycast(Transform.position + (Transform.forward / div), -Transform.up, out hitA)){
 						groundAngle = Vector3.RotateTowards(transform.up, hitA.normal, 1, 1);
 						return groundAngle.x * Mathf.Rad2Deg;
 					}
@@ -54,9 +59,9 @@ namespace SonicEngine{
 		private float Y{
 			set{
 				if (InAir){
-					Rigidbody.AddForce(0, value * ForceMult, 0, ForceMode.Acceleration);
+					Rigidbody.AddForce(0, value * YForceMult, 0, ForceMode.Acceleration);
 				} else{
-					Rigidbody.AddRelativeForce(0, value * ForceMult, 0, ForceMode.Acceleration);
+					Rigidbody.AddRelativeForce(0, value * YForceMult, 0, ForceMode.Acceleration);
 				}
 			}
 			get{ return Rigidbody.velocity.y; }
@@ -71,9 +76,9 @@ namespace SonicEngine{
 		private float X{
 			set{
 				if (InAir){
-					Rigidbody.AddForce(value * ForceMult, 0, 0, ForceMode.Acceleration);
+					Rigidbody.AddForce(value * XForceMult, 0, 0, ForceMode.Acceleration);
 				} else{
-					Rigidbody.AddRelativeForce(value * ForceMult, 0, 0, ForceMode.Acceleration);
+					Rigidbody.AddRelativeForce(value * XForceMult, 0, 0, ForceMode.Acceleration);
 				}
 			}
 			get{ return Rigidbody.velocity.x; }
@@ -127,11 +132,12 @@ namespace SonicEngine{
 
 		// Update is called once per frame
 		private void Update(){
+			inputDevice = InputManager.ActiveDevice;
 			ClearOnFrame();
 			ControlMove();
 			ControlJump();
 			Debug();
-			if(Input.anyKey){
+			if(inputDevice.AnyButton || inputDevice.Direction.HasChanged || inputDevice.DPad.HasChanged){
 				lastInput = DateTime.Now;
 				waitTime = 0;
 			}
@@ -145,12 +151,14 @@ namespace SonicEngine{
 		}
 
 		[Conditional("UNITY_EDITOR")] private void Debug(){
+#if UNITY_EDITOR
 			DebugText.text = string.Format("Angle: {0}, Velocity: {1}, State: {2}, Floor Angle: {3}",
 			                               Angle,
 			                               Rigidbody.velocity,
 			                               Status.state,
 			                               groundAngle
 			                               );
+#endif
 			if (Input.GetKeyDown(KeyCode.Alpha1)){
 				Destroy(Shield.gameObject);
 				Shield = null;
@@ -168,8 +176,8 @@ namespace SonicEngine{
 		protected virtual void ClearOnFrame(){ Jumping = false; }
 
 		protected virtual void ControlMove(){
-			var right = Input.GetKey(KeyCode.RightArrow);
-			var left = Input.GetKey(KeyCode.LeftArrow);
+			bool right = inputDevice.DPadRight;
+			bool left = inputDevice.DPadLeft;
 			if (right ^ left){
 				if (right){
 					if (Status.state == State.Roll){
@@ -233,8 +241,8 @@ namespace SonicEngine{
 				}
 			}
 			
-			var up = Input.GetKey(KeyCode.UpArrow);
-			var down = Input.GetKey(KeyCode.DownArrow);
+			var up = inputDevice.DPadUp;
+			var down = inputDevice.DPadDown;
 			if(up ^ down){
 				if(up){
 					LookingUp = true;
@@ -246,7 +254,7 @@ namespace SonicEngine{
 		}
 
 		protected virtual void ControlJump(){
-			if (Input.GetKeyDown(KeyCode.Space)){
+			if (inputDevice.Action1.WasPressed){
 				if (JumpsLeft != 0){
 					Y = JumpSpeed;
 					JumpsLeft--;
@@ -258,17 +266,11 @@ namespace SonicEngine{
 						onJump(this);
 					}
 				} else{
-					if (onJumpAction != null){
-						onJumpAction(this);
-					}
+					OnJumpAction();
 				}
-			} else if (Input.GetKeyUp(KeyCode.Space) &&
-			           Status.state == State.Jump){
-				if (Rigidbody.velocity.y > 4){
-					SetY(4);
-				}
-			} /*else if(Input.GetKey(KeyCode.Space)){
-			}*/
+			} else if (inputDevice.Action4.WasReleased && Status.state == State.Jump && Rigidbody.velocity.y > 4){
+				SetY(4);
+			}
 		}
 
 		protected virtual void ControlAnimation(){
@@ -320,6 +322,43 @@ namespace SonicEngine{
 			}
 		}
 
+		public virtual void OnJumpAction(){
+			if(Shield != null){
+				Shield.onJumpAction();
+			}
+		}
+		
+		public float distance = 0.7f;
+		public float angle = 180 * Mathf.Deg2Rad;
+
+		public virtual void Damage(Damage damage){
+			if(Shield != null &&
+			   Shield.damage(damage)){
+				
+			}
+			if(Rings != 0){
+				for(; Rings > 0; Rings--){
+					Vector3 centerPos = Transform.position;
+					Vector3 result = new Vector3();
+					result.y = (float)(centerPos.y + (distance * Math.Sin( angle )));
+					result.x = (float)(centerPos.x + (distance * Math.Cos( angle )));
+					var ring = Instantiate(Resources.Load<GameObject>("Prefabs/LostRing")).GetComponent<RingScript>();
+					Vector3 resultPos = centerPos - result;
+					resultPos.x *= Status.isFlipped ? -1 : 1;
+					resultPos.y *= -1;
+					ring.transform.position = resultPos + centerPos;
+					resultPos *= 3f;
+					resultPos.y *= 2.5f;
+					ring.rigidbody.velocity = resultPos;
+					Rings--; return;
+				}
+			}
+			else{
+				// die
+				AudioSource.PlayOneShot(DieSound, 0.5f);
+			}
+		}
+
 		private string AnimatorParameter(AnimatorParamtersValues value){
 			return AnimatorParamterStrings[(int)value];
 		}
@@ -338,8 +377,14 @@ namespace SonicEngine{
 			}
 		}*/
 
+		protected virtual void OnTriggerEnter(Collider hit){
+			if(hit.CompareTag("Damage")){
+				Damage(hit.GetComponent<DamageData>());
+			}
+		}
+
 		protected virtual void OnTriggerStay(Collider hit){
-			if (hit.gameObject.CompareTag("Ground") && !Jumping){
+			if (hit.CompareTag("Ground") && !Jumping){
 				JumpsLeft = JumpsToResetTo;
 				InAir = false;
 				Status.state = State.Normal;
@@ -347,7 +392,7 @@ namespace SonicEngine{
 		}
 
 		protected virtual void OnTriggerExit(Collider hit){
-			if (hit.gameObject.CompareTag("Ground")){
+			if (hit.CompareTag("Ground")){
 				if (JumpsLeft != 0 && Status.state != State.Jump){
 					JumpsLeft--;
 					Status.state = State.Air;
@@ -374,10 +419,6 @@ namespace SonicEngine{
 
 		public delegate void OnJump(Base character);
 
-		public event OnJumpAction onJumpAction;
-
-		public delegate void OnJumpAction(Base character);
-
 		#endregion
 	}
 	
@@ -398,10 +439,15 @@ namespace SonicEngine{
 
 	public struct Damage{
 		public Projectile projectile;
-		public DamageType DamageType;
+		public DamageElement DamageElement;
+		public DamageType damageType;
+	}
+
+	public enum DamageElement{
+		Normal, Fire, Electric, Water
 	}
 
 	public enum DamageType{
-		Normal, Fire, Electric, Water
+		Enviroment, Badnik, Projectile
 	}
 }
