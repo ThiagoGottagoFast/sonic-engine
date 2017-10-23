@@ -58,13 +58,13 @@ namespace CustomProfileExample
 				new InputControlMapping
 				{
 					Handle = "Dpad down",
-					Target = InputControlType.LeftStickY,
+					Target = InputControlType.DPadDown,
 					Source = KeyCodeButton( KeyCode.S, KeyCode.DownArrow )
 				},
 				new InputControlMapping
 				{
 					Handle = "Dpad up",
-					Target = InputControlType.LeftStickY,
+					Target = InputControlType.DPadUp,
 					Source = KeyCodeButton( KeyCode.W, KeyCode.UpArrow )
 				}
 			};

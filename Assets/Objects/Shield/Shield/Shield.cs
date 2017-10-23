@@ -9,6 +9,9 @@ namespace SonicEngine{
 
 		
 		public static void createShield<T>(Base character) where T : Shield{
+			if(character.Shield != null){
+				Destroy(character.Shield.Sphere.gameObject);
+			}
 			T shield = character.gameObject.AddComponent<T>();
 			character.Shield = shield;
 			shield.Character = character;
@@ -17,9 +20,11 @@ namespace SonicEngine{
 		private void Start(){
 			Sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 			Sphere.GetComponent<Renderer>().material.color = new Color(8, 109, 195);
-			Sphere.GetComponent<Rigidbody>().detectCollisions = false;
+			Sphere.GetComponent<SphereCollider>().enabled = false;
 			AudioClip shieldSound = Resources.Load<AudioClip>("BlueShield");
 			Character.AudioSource.PlayOneShot(shieldSound);
+			transform.SetParent(Character.Transform, false);
+			Sphere.transform.SetParent(transform.parent, false);
 		}
 
 		private void Update(){
@@ -36,10 +41,10 @@ namespace SonicEngine{
 		public virtual void onJumpAction(){}
 
 		public virtual bool damage(Damage damage){
-			if(damage.damageType != DamageType.Projectile){
+			if(damage.DamageType != DamageType.Projectile){
 				return true;
 			}
-			bounceProjectile(ref damage.projectile);
+			bounceProjectile(ref damage.Projectile);
 			return false;
 		}
 

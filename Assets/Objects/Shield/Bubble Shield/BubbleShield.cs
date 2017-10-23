@@ -7,6 +7,7 @@ public class BubbleShield : Shield {
 	void Start () {
 		Sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		Sphere.GetComponent<Renderer>().material.color = new Color(0.0f, 0.0f, 1f, 0.75f);
+		Sphere.GetComponent<SphereCollider>().enabled = false;
 	}
 	
 	// Update is called once per frame

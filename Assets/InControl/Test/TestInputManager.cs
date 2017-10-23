@@ -71,7 +71,9 @@ namespace InControl
 
 			if (Input.GetKeyDown( KeyCode.R ))
 			{
+#pragma warning disable 618
 				Application.LoadLevel( "TestInputManager" );
+#pragma warning restore 618
 			}
 		}
 

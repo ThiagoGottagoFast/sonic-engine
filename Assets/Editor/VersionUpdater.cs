@@ -12,6 +12,7 @@ namespace InControl
 	{
 		static VersionUpdater()
 		{
+#pragma warning disable 618
 			EditorApplication.playmodeStateChanged += Update;
 		}
 
@@ -21,6 +22,7 @@ namespace InControl
 			if (!EditorApplication.isPlaying)
 			{
 				EditorApplication.playmodeStateChanged -= Update;
+#pragma warning restore 618
 				UpdateVersion();
 			}
 		}

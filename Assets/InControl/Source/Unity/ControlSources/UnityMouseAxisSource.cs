@@ -11,7 +11,7 @@ namespace InControl
 
 		public UnityMouseAxisSource( string axis )
 		{
-			this.mouseAxisQuery = "mouse " + axis;
+			mouseAxisQuery = "mouse " + axis;
 		}
 		
 		

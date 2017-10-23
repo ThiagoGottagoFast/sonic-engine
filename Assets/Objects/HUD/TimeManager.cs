@@ -1,12 +1,12 @@
 ﻿using System;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class TimeManager : MonoBehaviour {
-	public Text text;
+	public TextMeshProUGUI text;
 	// Use this for initialization
 	void Start (){
-		text = GetComponent<Text>();
+		text = GetComponent<TextMeshProUGUI>();
 	}
 	
 	// Update is called once per frame

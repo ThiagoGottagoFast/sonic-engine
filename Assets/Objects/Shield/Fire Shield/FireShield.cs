@@ -7,22 +7,24 @@ public class FireShield : Shield {
 	void Start () {
 		Sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		Sphere.GetComponent<Renderer>().material.color = new Color(1f, 0.6f, 0, 0.75f);
+		Sphere.GetComponent<SphereCollider>().enabled = false;
+		
 	}
 
 	public override void onJumpAction(){
 		var vel = new Vector3(7, 0);
-		if(Character.Status.isFlipped){
+		if(Character.IsFlipped){
 			vel.x = -vel.x;
 		}
 		Character.Rigidbody.velocity = vel;
 	}
 
 	public override bool damage(Damage damage){
-		if(damage.projectile != null){
+		if(damage.Projectile != null){
 			return false;
 		}
 		if(damage.DamageElement == DamageElement.Fire){
-			bounceProjectile(ref damage.projectile);
+			bounceProjectile(ref damage.Projectile);
 			return false;
 		}
 		return true;

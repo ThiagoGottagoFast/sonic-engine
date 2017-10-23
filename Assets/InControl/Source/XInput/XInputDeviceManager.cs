@@ -81,7 +81,7 @@ namespace InControl
 		public static void Enable()
 		{
 			var errors = new List<string>();
-			if (XInputDeviceManager.CheckPlatformSupport( errors ))
+			if (CheckPlatformSupport( errors ))
 			{
 				InputManager.HideDevicesWithProfile( typeof(Xbox360WinProfile) );
 				InputManager.HideDevicesWithProfile( typeof(XboxOneWinProfile) );

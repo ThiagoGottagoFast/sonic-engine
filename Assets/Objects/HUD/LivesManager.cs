@@ -1,7 +1,7 @@
 ﻿using TMPro;
 using UnityEngine;
 
-public class RingManager : MonoBehaviour{
+public class LivesManager : MonoBehaviour{
 	private TextMeshProUGUI text;
 	// Use this for initialization
 	void Start (){
@@ -10,6 +10,6 @@ public class RingManager : MonoBehaviour{
 	
 	// Update is called once per frame
 	void Update (){
-		text.text = SonicEngine.Base.Rings.ToString();
+		text.text = SonicEngine.Base.Lives.ToString();
 	}
 }

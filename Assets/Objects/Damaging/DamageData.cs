@@ -11,8 +11,8 @@ public class DamageData : MonoBehaviour{
 	public static implicit operator Damage(DamageData data){
 		return new Damage{
 			DamageElement = data.DamageElement,
-			damageType = data.damageType,
-			projectile = null
+			DamageType = data.damageType,
+			Projectile = null
 		};
 	}
 }
