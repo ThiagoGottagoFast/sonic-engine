@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using UnityEngine;
 using InControl;
@@ -15,7 +16,9 @@ namespace SonicEngine{
 		public Animator Animator;
 		public CapsuleCollider NormalHitbox;
 		public SphereCollider BallHitbox;
-		public Vector3 SpawnPos;
+		public Vector3 CheckPointPos;
+		//public ulong CheckPointTime;
+		public bool Invisible;
 		public bool InAir;
 		public bool LookingUp;
 		public bool LookingDown;
@@ -180,7 +183,7 @@ namespace SonicEngine{
 			MouthDead2Bone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/mesh_mouth_dead2");
 			MouthSideBone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side");
 			MouthSide2Bone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side_02");
-			SpawnPos = transform.position;
+			CheckPointPos = transform.position;
 		}
 
 		// Update is called once per frame
@@ -191,7 +194,10 @@ namespace SonicEngine{
 				controlMove();
 			}
 			debug();
-			if(InputDevice.AnyButton || !(InputDevice.LeftStick.Vector == Vector2.zero || InputDevice.DPad.Vector == Vector2.zero || CanMove)){
+			bool result = InputDevice.AnyButton ||
+			              InputDevice.LeftStick.Vector != Vector2.zero ||
+			              InputDevice.DPad.Vector != Vector2.zero;
+			if(result){
 				LastInput = DateTime.Now;
 				WaitTime = 0;
 			}
@@ -237,63 +243,83 @@ namespace SonicEngine{
 		}
 
 		protected virtual void controlMove(){
-			bool right = InputDevice.DPadRight;
-			bool left = InputDevice.DPadLeft;
-			if (right ^ left){
-				if (right){
-					if (State == State.Roll){
-						if (x < 0){
-							x = RollDeccel * UnityEngine.Time.deltaTime;
-						}
-					} else{
-						if (x < 0 &&
-						    !InAir){
-							x = Decceleration * UnityEngine.Time.deltaTime;
-						} else{
-							if (x < TopSpeed){
-								x = Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
-								if (x > TopSpeed){
-									setX(TopSpeed);
-								}
-							}
-						}
-					}
-				} else{
-					if (State == State.Roll){
-						if (x > 0){
-							x = -RollDeccel * UnityEngine.Time.deltaTime;
-						}
-					} else{
-						if (x > 0 &&
-						    !InAir){
-							x = -Decceleration * UnityEngine.Time.deltaTime;
-						} else{
-							if (x > -TopSpeed){
-								x = -Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
-								if (x < -TopSpeed){
-									setX(-TopSpeed);
-								}
-							}
-						}
-					}
+			const float minSpeed = 0.125f;
+			var up = InputDevice.DPadUp;
+			var down = InputDevice.DPadDown;
+			if((up ^ down) && (Mathf.Abs(Speed) < minSpeed)){
+				if(up){
+					LookingUp = true;
+				}
+				if(down){
+					LookingDown = true;
 				}
 			} else{
-				if (x > 0){
-					x = -Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
-					if (x < 0){
-						setX(0);
+				bool right = InputDevice.DPadRight;
+				bool left = InputDevice.DPadLeft;
+				if (right ^ left){
+					if (right){
+						if (State == State.Roll){
+							if (x < 0){
+								x = RollDeccel * UnityEngine.Time.deltaTime;
+							}
+						} else{
+							if (x < 0 &&
+							    !InAir){
+								x = Decceleration * UnityEngine.Time.deltaTime;
+							} else{
+								if (x < TopSpeed){
+									x = Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
+									if (x > TopSpeed){
+										setX(TopSpeed);
+									}
+								}
+							}
+						}
+					} else{
+						if (State == State.Roll){
+							if (x > 0){
+								x = -RollDeccel * UnityEngine.Time.deltaTime;
+							}
+						} else{
+							if (x > 0 &&
+							    !InAir){
+								x = -Decceleration * UnityEngine.Time.deltaTime;
+							} else{
+								if (x > -TopSpeed){
+									x = -Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
+									if (x < -TopSpeed){
+										setX(-TopSpeed);
+									}
+								}
+							}
+						}
 					}
-				} else if (x < 0){
-					x = Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
+				} /*else{
 					if (x > 0){
-						setX(0);
+						x = -Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
+						if (x < 0){
+							setX(0);
+						}
+					} else if (x < 0){
+						x = Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
+						if (x > 0){
+							setX(0);
+						}
 					}
-				}
+				}*/
 			}
+			
+			if (LookingDown){
+				NormalHitbox.height = 1.5f;
+				NormalHitbox.center = new Vector3(0, -0.25f);
+			} else{
+				NormalHitbox.height = 2;
+				NormalHitbox.center = Vector3.zero;
+			}
+			
 			if (State != State.Jump){
-				const float minSpeed = 0.15f;
 				if (Math.Abs(x) < minSpeed){
-					setX(0);
+					//setX(0);
 				} else{
 					if (x > minSpeed){
 						IsFlipped = false;
@@ -301,24 +327,6 @@ namespace SonicEngine{
 						IsFlipped = true;
 					}
 				}
-			}
-			
-			var up = InputDevice.DPadUp;
-			var down = InputDevice.DPadDown;
-			if(up ^ down){
-				if(up){
-					LookingUp = true;
-				}
-				if(down){
-					LookingDown = true;
-				}
-			}
-			if (LookingDown){
-				NormalHitbox.height = 1.5f;
-				NormalHitbox.center = new Vector3(0, -0.25f);
-			} else{
-				NormalHitbox.height = 2;
-				NormalHitbox.center = Vector3.zero;
 			}
 			controlJump();
 		}
@@ -348,10 +356,15 @@ namespace SonicEngine{
 			var modelRot = ModelTransform.localEulerAngles;
 			var flip = IsFlipped ? -1 : 1;
 			rot.z = -angle;
-			modelRot.y = 90 * flip;
+			if(!IsDead){
+				modelRot.y = 90 * flip;
+			}
+			else{
+				modelRot.y = 180;
+			}
 			transform.eulerAngles = rot;
 			ModelTransform.localEulerAngles = modelRot;
-			if(((int)InvulnerableTime / 4) % 2 == 1){
+			if(Invisible){
 				ModelTransform.localScale = Vector3.zero;
 			}
 			else{
@@ -417,10 +430,10 @@ namespace SonicEngine{
 			if(InvincibilityTime > 0 || InvulnerableTime > 0) return;
 			if(Shield != null){
 				if (Shield.damage(damage)){
-					AudioSource.PlayOneShot(DieSound, 0.5f);
-				} else{
-					return;
+					AudioSource.PlayOneShot(DieSound, 1f);
+					KnockBack(damagePosition.x);
 				}
+				return;
 			}
 			if(Rings != 0){
 				AudioSource.PlayOneShot(RingLossSound, 0.5f);
@@ -451,20 +464,52 @@ namespace SonicEngine{
 			}
 			else{
 				// die
-				AudioSource.PlayOneShot(DieSound, 0.5f);
+				AudioSource.PlayOneShot(DieSound, 1f);
+				State = State.Normal;
+				InAir = true;
+				IsDead = true;
+				CanMove = false;
+				Rigidbody.velocity = new Vector3(0, 7);
+				SmoothCamera.enabled = false;
+				NormalHitbox.enabled = false;
+				BallHitbox.enabled = false;
+				StartCoroutine(WaitToRespawn());
 				return;
 			}
+			KnockBack(damagePosition.x);
+		}
+
+		private IEnumerator WaitToRespawn(){
+			yield return new WaitForSeconds(2);
+			transform.position = CheckPointPos;
+			CanMove = true;
+			IsDead = false;
+			InAir = false;
+			SmoothCamera.enabled = true;
+			NormalHitbox.enabled = true;
+			BallHitbox.enabled = false;
+		}
+
+		private IEnumerator BlinkAnim(){
+			while(InvulnerableTime > 0){
+				Invisible = !Invisible;
+				yield return new WaitForSeconds(0.066666599999999993f);
+			}
+			Invisible = false;
+		}
+
+		public void KnockBack(float damagePosition){
 			IsHurt = true;
 			InvulnerableTime = 2;
 			// fly back
 			Vector3 velocity = new Vector3(2, 4);
-			if(damagePosition.x > transform.position.x){
+			if(damagePosition > transform.position.x){
 				velocity.x *= -1;
 			}
 			Rigidbody.velocity = velocity;
 		}
 
-		private string animatorParameter(AnimatorParamtersValues value){
+		private static string animatorParameter(AnimatorParamtersValues value){
 			return AnimatorParamterStrings[(int)value];
 		}
 
@@ -483,17 +528,20 @@ namespace SonicEngine{
 		}*/
 
 		protected virtual void OnTriggerEnter(Collider hit){
+			if(IsDead) return;
 			if(hit.CompareTag("Damage") && InvulnerableTime <= 0){
 				damage(hit.GetComponent<DamageData>(), hit.transform.position);
 			} else if (hit.CompareTag("Ground")){
 				if(IsHurt){
 					IsHurt = false;
 					setX(0);
+					StartCoroutine(BlinkAnim());
 				}
 			}
 		}
 
 		protected virtual void OnTriggerStay(Collider hit){
+			if(IsDead) return;
 			if (hit.CompareTag("Ground") && !Jumping){
 				JumpsLeft = JumpsToResetTo;
 				InAir = false;
@@ -502,6 +550,7 @@ namespace SonicEngine{
 		}
 
 		protected virtual void OnTriggerExit(Collider hit){
+			if(IsDead) return;
 			if (hit.CompareTag("Ground")){
 				if (JumpsLeft != 0 && State != State.Jump){
 					JumpsLeft--;
