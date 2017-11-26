@@ -246,7 +246,7 @@ namespace SonicEngine{
 			const float minSpeed = 0.125f;
 			var up = InputDevice.DPadUp;
 			var down = InputDevice.DPadDown;
-			if((up ^ down) && (Mathf.Abs(Speed) < minSpeed)){
+			if((up ^ down) && (Mathf.Abs(x) < minSpeed)){
 				if(up){
 					LookingUp = true;
 				}
@@ -333,18 +333,24 @@ namespace SonicEngine{
 
 		protected virtual void controlJump(){
 			if (InputDevice.Action1.WasPressed || InputDevice.Action2.WasPressed || InputDevice.Action3.WasPressed || InputDevice.Action4.WasPressed){
-				if (JumpsLeft != 0){
-					y = JumpSpeed;
-					JumpsLeft--;
-					InAir = true;
-					State = State.Jump;
-					Jumping = true;
-					AudioSource.PlayOneShot(JumpSound, 0.5f);
-					if (onJump != null){
-						onJump(this);
-					}
+				if(LookingUp){
+					// Super Peel-Out
+				} else if(LookingDown){
+					// Spindash
 				} else{
-					onJumpAction();
+					if (JumpsLeft != 0){
+						y = JumpSpeed;
+						JumpsLeft--;
+						InAir = true;
+						State = State.Jump;
+						Jumping = true;
+						AudioSource.PlayOneShot(JumpSound, 0.5f);
+						if (onJump != null){
+							onJump(this);
+						}
+					} else{
+						onJumpAction();
+					}
 				}
 			} else if ((InputDevice.Action1.WasReleased || InputDevice.Action2.WasReleased || InputDevice.Action3.WasReleased || InputDevice.Action4.WasReleased) && State == State.Jump && Rigidbody.velocity.y > 4){
 				setY(4);
@@ -374,7 +380,7 @@ namespace SonicEngine{
 			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.WaitTime), 
 			                  WaitTime
 			                 );
-			float speed = Mathf.Abs(Rigidbody.velocity.x);
+			float speed = Mathf.Abs(x);
 			if(State != State.Air){
 				Animator.SetFloat(animatorParameter(AnimatorParamtersValues.Speed),
 				                  speed
@@ -386,6 +392,9 @@ namespace SonicEngine{
 				                  percent + 1
 				                 );
 			}
+			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.InvulnTimer), 
+			                  InvulnerableTime
+			                 );
 			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Jumping), 
 			                  State == State.Jump
 			                 );
@@ -403,10 +412,6 @@ namespace SonicEngine{
 			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Rolling), 
 			                 false
 			                );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Hurt), 
-			                 IsHurt
-			                );
-			if(IsDead) Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Die));
 			MouthCenterBone.localScale = Vector3.zero;
 			MouthDead2Bone.localScale = Vector3.zero;
 			if(IsFlipped){
@@ -473,13 +478,14 @@ namespace SonicEngine{
 				SmoothCamera.enabled = false;
 				NormalHitbox.enabled = false;
 				BallHitbox.enabled = false;
-				StartCoroutine(WaitToRespawn());
+				StartCoroutine(Respawn());
+				Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Die));
 				return;
 			}
 			KnockBack(damagePosition.x);
 		}
 
-		private IEnumerator WaitToRespawn(){
+		private IEnumerator Respawn(){
 			yield return new WaitForSeconds(2);
 			transform.position = CheckPointPos;
 			CanMove = true;
@@ -507,6 +513,8 @@ namespace SonicEngine{
 				velocity.x *= -1;
 			}
 			Rigidbody.velocity = velocity;
+			
+			Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Hurt));
 		}
 
 		private static string animatorParameter(AnimatorParamtersValues value){
@@ -514,11 +522,11 @@ namespace SonicEngine{
 		}
 
 		private enum AnimatorParamtersValues{
-			WaitTime, Speed, SpinSpeed, Jumping, LookingUp, LookingDown, SpinDashing, Rolling, Hurt, Die
+			WaitTime, Speed, SpinSpeed, InvulnTimer, Jumping, LookingUp, LookingDown, SpinDashing, Rolling, Hurt, Die
 		}
 
 		private static readonly string[] AnimatorParamterStrings = {
-			"Wait Time", "Speed", "SpinSpeed", "Jumping", "LookingUp", "LookingDown", "SpinDashing", "Rolling", "Hurt", "Die"
+			"Wait Time", "Speed", "SpinSpeed", "InvulnTimer", "Jumping", "LookingUp", "LookingDown", "SpinDashing", "Rolling", "Hurt", "Die"
 		};
 
 		/*protected virtual void OnCollisionEnter(Collision hit){

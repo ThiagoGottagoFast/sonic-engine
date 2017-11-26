@@ -5,21 +5,30 @@ namespace SonicEngine{
 
 		public Base Character;
 		public GameObject Sphere;
+		public GameObject ShieldObject;
 		public short Rotate;
 
 		
 		public static void createShield<T>(Base character) where T : Shield{
-			if(character.Shield != null){
-				Destroy(character.Shield.Sphere.gameObject);
-			}
-			T shield = character.gameObject.AddComponent<T>();
+			destroyShield(character);
+			GameObject shieldObject = new GameObject("Shield Object");
+			shieldObject.transform.localScale = Vector3.one * 2;
+			T shield = shieldObject.AddComponent<T>();
 			character.Shield = shield;
 			shield.Character = character;
+			shield.ShieldObject = shieldObject;
+		}
+		public static void destroyShield(Base character){
+			if(character.Shield != null){
+				Destroy(character.Shield.Sphere);
+				Destroy(character.Shield.gameObject);
+			}
 		}
 
 		private void Start(){
 			Sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-			Sphere.GetComponent<Renderer>().material.color = new Color(8, 109, 195);
+			Renderer renderer = Sphere.GetComponent<Renderer>();
+			renderer.material.color = new Color(0.34f, 0.4f, 1f, 0.5f);
 			Sphere.GetComponent<SphereCollider>().enabled = false;
 			AudioClip shieldSound = Resources.Load<AudioClip>("BlueShield");
 			Character.AudioSource.PlayOneShot(shieldSound);
@@ -28,10 +37,12 @@ namespace SonicEngine{
 		}
 
 		private void Update(){
-			var rot = Sphere.transform.eulerAngles;
-			rot.y = Rotate++;
-			Sphere.transform.eulerAngles = rot;
-			Rotate %= 360;
+			if(Sphere != null){
+				var rot = Sphere.transform.eulerAngles;
+				rot.y = Rotate++;
+				Sphere.transform.eulerAngles = rot;
+				Rotate %= 360;
+			}
 		}
 
 		private void OnDestroy(){
