@@ -342,7 +342,12 @@ ModelImporter:
     9500000: //RootNode
     11100000: //RootNode
     13700000: chr_classic_sonic_HD
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CScloth
+    second: {fileID: 2100000, guid: b29911b0d43bc5746a34d34814ce22bf, type: 2}
   materials:
     importMaterials: 1
     materialName: 0

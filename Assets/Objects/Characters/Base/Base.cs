@@ -3,12 +3,13 @@ using System.Collections;
 using System.Diagnostics;
 using UnityEngine;
 using InControl;
+using TMPro;
 
 namespace SonicEngine{
-	[RequireComponent(typeof(AudioSource))] 
+	[RequireComponent(typeof(AudioSource))]
 	public class Base : MonoBehaviour{
 		public const string Name = "Base test character";
-		
+
 		public Transform Transform;
 		public Transform ModelTransform;
 		public Rigidbody Rigidbody;
@@ -16,6 +17,7 @@ namespace SonicEngine{
 		public Animator Animator;
 		public CapsuleCollider NormalHitbox;
 		public SphereCollider BallHitbox;
+		public PhysicMaterial physicMaterial;
 		public Vector3 CheckPointPos;
 		//public ulong CheckPointTime;
 		public bool Invisible;
@@ -26,28 +28,32 @@ namespace SonicEngine{
 		public byte JumpsToResetTo = 1;
 		public byte JumpsLeft = 1;
 		public bool Jumping;
-		public ushort XForceMult = 65;
-		public ushort YForceMult = 45;
+		public uint XForceMult = 65;
+		public uint YForceMult = 45;
+
+		public float MovingFriction, Coasting, StopingFriction;
 
 		#region Status
-		
+
 		public State State;
 		//public short animation;
 		//public int animationFrame;
 		public float InvulnerableTime;
 		public float InvincibilityTime;
 		public float SpeedshoesTime;
+		public float SpinDashTime;
+		public float SuperPeelOutTime;
 		public bool IsFlipped;
 		public bool IsHurt;
 		public bool IsDead;
 		public bool CanMove = true;
-		
+
 		#endregion
 
 		public DateTime LastInput = DateTime.Now;
 		public float WaitTime;
 		public Vector3 GroundAngle;
-		
+
 		public static ulong Score;
 		public static Stopwatch Time;
 
@@ -62,7 +68,7 @@ namespace SonicEngine{
 		public InputDevice InputDevice;
 
 #if UNITY_EDITOR
-		public TextMesh DebugText;
+		public TextMeshProUGUI DebugText;
 #endif
 
 		private float angle{
@@ -79,26 +85,40 @@ namespace SonicEngine{
 			}
 		}
 
+		private Vector3 RelativeVel{
+			get{
+				return transform.InverseTransformDirection(Vel);
+			}
+			set{
+				Vel = transform.TransformDirection(value);
+			}
+		}
+
+		private Vector3 Vel{
+			get{return Rigidbody.velocity;}
+			set{Rigidbody.velocity = value;}
+		}
+
 		private float y{
 			set{
 				if (InAir){
-					Rigidbody.AddForce(0, value * YForceMult, 0, ForceMode.Acceleration);
+					Rigidbody.AddForce(0, value * YForceMult, 0, ForceMode.Force);
 				} else{
-					Rigidbody.AddRelativeForce(0, value * YForceMult, 0, ForceMode.Acceleration);
+					Rigidbody.AddRelativeForce(0, value * YForceMult, 0, ForceMode.Force);
 				}
 			}
-			get{ return Rigidbody.velocity.y; }
+			get{ return RelativeVel.y; }
 		}
 
 		private float x{
 			set{
 				if (InAir){
-					Rigidbody.AddForce(value * XForceMult, 0, 0, ForceMode.Acceleration);
+					Rigidbody.AddForce(value * XForceMult, 0, 0, ForceMode.Force);
 				} else{
-					Rigidbody.AddRelativeForce(value * XForceMult, 0, 0, ForceMode.Acceleration);
+					Rigidbody.AddRelativeForce(value * XForceMult, 0, 0, ForceMode.Force);
 				}
 			}
-			get{ return Rigidbody.velocity.x; }
+			get{ return RelativeVel.x; }
 		}
 
 		public void setY(float y){
@@ -120,27 +140,27 @@ namespace SonicEngine{
 		}
 
 		public void setYAbs(float y){
-			var vel = Rigidbody.velocity;
+			var vel = Vel;
 			vel.y = y;
-			Rigidbody.velocity = vel;
+			Vel = vel;
 		}
 
 		public void setXAbs(float x){
-			var vel = Rigidbody.velocity;
+			var vel = Vel;
 			vel.x = x;
-			Rigidbody.velocity = vel;
+			Vel = vel;
 		}
 
 		public void setYRel(float y){
-			var locVel = transform.InverseTransformDirection(Rigidbody.velocity);
+			var locVel = transform.InverseTransformDirection(Vel);
 			locVel.y = y;
-			Rigidbody.velocity = transform.TransformDirection(locVel);
+			Vel = transform.TransformDirection(locVel);
 		}
 
 		public void setXRel(float x){
-			var locVel = transform.InverseTransformDirection(Rigidbody.velocity);
+			var locVel = transform.InverseTransformDirection(Vel);
 			locVel.x = x;
-			Rigidbody.velocity = transform.TransformDirection(locVel);
+			Vel = transform.TransformDirection(locVel);
 		}
 
 		private const float Acceleration = 0.046875f;
@@ -162,7 +182,7 @@ namespace SonicEngine{
 		public AudioClip DieSound;
 
 		#endregion
-		
+
 		public Transform MouthCenterBone;
 		public Transform MouthDead2Bone;
 		public Transform MouthSideBone;
@@ -205,17 +225,18 @@ namespace SonicEngine{
 				WaitTime = (float)DateTime.Now.Subtract(LastInput).TotalSeconds;
 			}
 		}
-		
+
 		private void LateUpdate(){
 			controlAnimation();
 		}
 
 		[Conditional("UNITY_EDITOR")] private void debug(){
 #if UNITY_EDITOR
-			DebugText.text = string.Format("Angle: {0}, Velocity: {1}, State: {2}, Floor Angle: {3}",
-			                               angle,
-			                               Rigidbody.velocity,
+			DebugText.text = string.Format("Velocity: {0}\nRelative Velocity: {1}\nState: {2}\nAngle: {3}\nFloor Angle: {4}",
+			                               Vel,
+			                               RelativeVel,
 			                               State,
+			                               angle,
 			                               GroundAngle
 			                               );
 #endif
@@ -236,9 +257,17 @@ namespace SonicEngine{
 
 		protected virtual void clearOnFrame(){
 			Jumping = false;
+			Rigidbody.useGravity = true;
 			if(!IsHurt &&
 			   InvulnerableTime >= 0){
 				InvulnerableTime -= UnityEngine.Time.deltaTime;
+			}
+
+			if(SpinDashTime > 0){
+				SpinDashTime -= UnityEngine.Time.deltaTime;
+				if(SpinDashTime < 0){
+					SpinDashTime = 0;
+				}
 			}
 		}
 
@@ -259,15 +288,21 @@ namespace SonicEngine{
 				if (right ^ left){
 					if (right){
 						if (State == State.Roll){
-							if (x < 0){
-								x = RollDeccel * UnityEngine.Time.deltaTime;
+							if(x < 0){
+								//x = RollDeccel * UnityEngine.Time.deltaTime;
+								physicMaterial.dynamicFriction = Coasting;
+							}
+							else{
+								physicMaterial.dynamicFriction = MovingFriction;
 							}
 						} else{
-							if (x < 0 &&
+							if (x < -minSpeed &&
 							    !InAir){
-								x = Decceleration * UnityEngine.Time.deltaTime;
+								//x = Decceleration * UnityEngine.Time.deltaTime;
+								physicMaterial.dynamicFriction = StopingFriction;
 							} else{
-								if (x < TopSpeed){
+								physicMaterial.dynamicFriction = MovingFriction;
+								if (x <= TopSpeed){
 									x = Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
 									if (x > TopSpeed){
 										setX(TopSpeed);
@@ -278,14 +313,20 @@ namespace SonicEngine{
 					} else{
 						if (State == State.Roll){
 							if (x > 0){
-								x = -RollDeccel * UnityEngine.Time.deltaTime;
+								//x = -RollDeccel * UnityEngine.Time.deltaTime;
+								physicMaterial.dynamicFriction = Coasting;
+							}
+							else{
+								physicMaterial.dynamicFriction = MovingFriction;
 							}
 						} else{
-							if (x > 0 &&
+							if (x > minSpeed &&
 							    !InAir){
-								x = -Decceleration * UnityEngine.Time.deltaTime;
+								//x = -Decceleration * UnityEngine.Time.deltaTime;
+								physicMaterial.dynamicFriction = StopingFriction;
 							} else{
-								if (x > -TopSpeed){
+								physicMaterial.dynamicFriction = MovingFriction;
+								if (x >= -TopSpeed){
 									x = -Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
 									if (x < -TopSpeed){
 										setX(-TopSpeed);
@@ -294,21 +335,11 @@ namespace SonicEngine{
 							}
 						}
 					}
-				} /*else{
-					if (x > 0){
-						x = -Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
-						if (x < 0){
-							setX(0);
-						}
-					} else if (x < 0){
-						x = Friction * (State == State.Roll ? 0.5f : 1f) * UnityEngine.Time.deltaTime;
-						if (x > 0){
-							setX(0);
-						}
-					}
-				}*/
+				} else{
+					physicMaterial.dynamicFriction = Coasting;
+				}
 			}
-			
+
 			if (LookingDown){
 				NormalHitbox.height = 1.5f;
 				NormalHitbox.center = new Vector3(0, -0.25f);
@@ -316,7 +347,7 @@ namespace SonicEngine{
 				NormalHitbox.height = 2;
 				NormalHitbox.center = Vector3.zero;
 			}
-			
+
 			if (State != State.Jump){
 				if (Math.Abs(x) < minSpeed){
 					//setX(0);
@@ -329,6 +360,14 @@ namespace SonicEngine{
 				}
 			}
 			controlJump();
+
+			if(!InAir){
+				if(Mathf.Abs(x) > 3){
+					setYRel(-2);
+					Rigidbody.useGravity = false;
+					UnityEngine.Debug.Log("Sticking to surface");
+				}
+			}
 		}
 
 		protected virtual void controlJump(){
@@ -352,7 +391,7 @@ namespace SonicEngine{
 						onJumpAction();
 					}
 				}
-			} else if ((InputDevice.Action1.WasReleased || InputDevice.Action2.WasReleased || InputDevice.Action3.WasReleased || InputDevice.Action4.WasReleased) && State == State.Jump && Rigidbody.velocity.y > 4){
+			} else if ((InputDevice.Action1.WasReleased || InputDevice.Action2.WasReleased || InputDevice.Action3.WasReleased || InputDevice.Action4.WasReleased) && State == State.Jump && Vel.y > 4){
 				setY(4);
 			}
 		}
@@ -376,8 +415,8 @@ namespace SonicEngine{
 			else{
 				ModelTransform.localScale = Vector3.one * 2;
 			}
-			
-			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.WaitTime), 
+
+			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.WaitTime),
 			                  WaitTime
 			                 );
 			float speed = Mathf.Abs(x);
@@ -392,24 +431,28 @@ namespace SonicEngine{
 				                  percent + 1
 				                 );
 			}
-			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.InvulnTimer), 
+			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.InvulnTimer),
 			                  InvulnerableTime
 			                 );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Jumping), 
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Jumping),
 			                  State == State.Jump
 			                 );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingUp), 
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingUp),
 			                 LookingUp
 			                );
 			LookingUp = false;
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingDown), 
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingDown),
 			                 LookingDown
 			                );
 			LookingDown = false;
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.SpinDashing), 
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.SpinDashing),
 			                 false
 			                );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Rolling), 
+
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.SuperPeelOut),
+			                 false
+			                );
+			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Rolling),
 			                 false
 			                );
 			MouthCenterBone.localScale = Vector3.zero;
@@ -428,7 +471,7 @@ namespace SonicEngine{
 				Shield.onJumpAction();
 			}
 		}
-		
+
 		public float Speed = 4.5f;
 
 		public virtual void damage(Damage damage, Vector3 damagePosition){
@@ -449,7 +492,7 @@ namespace SonicEngine{
 					var ring = Instantiate(Resources.Load<GameObject>("Prefabs/LostRing")).GetComponent<RingScript>();
 					Physics.IgnoreCollision(GetComponent<CapsuleCollider>(), ring.GetComponents<SphereCollider>()[0]);
 					Physics.IgnoreCollision(GetComponent<SphereCollider>(), ring.GetComponents<SphereCollider>()[0]);
-					
+
 					Vector3 result = new Vector3();
 					result.y = -Mathf.Sin(Angle) * Speed;
 					result.x = Mathf.Cos(Angle) * Speed;
@@ -474,7 +517,7 @@ namespace SonicEngine{
 				InAir = true;
 				IsDead = true;
 				CanMove = false;
-				Rigidbody.velocity = new Vector3(0, 7);
+				Vel = new Vector3(0, 7);
 				SmoothCamera.enabled = false;
 				NormalHitbox.enabled = false;
 				BallHitbox.enabled = false;
@@ -512,8 +555,8 @@ namespace SonicEngine{
 			if(damagePosition > transform.position.x){
 				velocity.x *= -1;
 			}
-			Rigidbody.velocity = velocity;
-			
+			Vel = velocity;
+
 			Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Hurt));
 		}
 
@@ -522,11 +565,11 @@ namespace SonicEngine{
 		}
 
 		private enum AnimatorParamtersValues{
-			WaitTime, Speed, SpinSpeed, InvulnTimer, Jumping, LookingUp, LookingDown, SpinDashing, Rolling, Hurt, Die
+			WaitTime, Speed, SpinSpeed, InvulnTimer, Jumping, LookingUp, LookingDown, SpinDashing, SuperPeelOut, Rolling, Hurt, Die
 		}
 
 		private static readonly string[] AnimatorParamterStrings = {
-			"Wait Time", "Speed", "SpinSpeed", "InvulnTimer", "Jumping", "LookingUp", "LookingDown", "SpinDashing", "Rolling", "Hurt", "Die"
+			"Wait Time", "Speed", "SpinSpeed", "InvulnTimer", "Jumping", "LookingUp", "LookingDown", "SpinDashing", "Super Peel-out", "Rolling", "Hurt", "Die"
 		};
 
 		/*protected virtual void OnCollisionEnter(Collision hit){
@@ -564,7 +607,7 @@ namespace SonicEngine{
 					JumpsLeft--;
 					State = State.Air;
 					InAir = true;
-					
+
 					if (onAir != null) onAir(this);
 				}
 			}
@@ -590,7 +633,7 @@ namespace SonicEngine{
 
 		#endregion
 	}
-	
+
 
 	public enum State{
 		Normal, Air, Roll, Jump

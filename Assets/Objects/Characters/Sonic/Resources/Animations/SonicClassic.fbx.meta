@@ -1,6 +1,6 @@
 fileFormatVersion: 2
 guid: 79c2482c5d869f142a66ee8e4dfcd61c
-timeCreated: 1507445091
+timeCreated: 1511826165
 licenseType: Free
 ModelImporter:
   serializedVersion: 22
@@ -346,27 +346,67 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CScloth
-    second: {fileID: 2100012, guid: a1f025a489a6e144ab56a64ef78130c7, type: 3}
+    second: {fileID: 2100000, guid: b29911b0d43bc5746a34d34814ce22bf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSeyewhiteL
+    second: {fileID: 2100000, guid: 74dbb86b0b2e9db4d9976bf459503e23, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSeyewhiteR
+    second: {fileID: 2100000, guid: 43e67d5a71ec2034ea8b70376b3764ec, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSfur
+    second: {fileID: 2100000, guid: 84e54cdaee864bf4bb0e743e09fd66cc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSmouth
+    second: {fileID: 2100000, guid: 5278068b3f273d3478a0471e3eab2825, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSnose
+    second: {fileID: 2100000, guid: 75bbce50a829f3d4a827626c78bc0418, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSshoes
+    second: {fileID: 2100000, guid: 8a8cbaff6bf53df43a244446f17eed89, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSskin
+    second: {fileID: 2100000, guid: fabafa9dd625b2f4ab1315175dd35e7d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSsole
+    second: {fileID: 2100000, guid: 2fd63b49530e9d4439da8d22f681f724, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: chr_classic_sonic_cloth_dif_HD
-    second: {fileID: 2800000, guid: 133c426d24565eb4688670ba62a174cf, type: 3}
+    second: {fileID: 2800000, guid: d7c4f443e4797974eb69b57a4e023f04, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: chr_classic_sonic_eye_dif_HD
-    second: {fileID: 2800000, guid: 5fb6c4b5a38d7cb478ff1b3429dc39f3, type: 3}
+    second: {fileID: 2800000, guid: a8e2c2805696d104baed241bf5d3b5aa, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: chr_classic_sonic_shoe_dif_HD
-    second: {fileID: 2800000, guid: 29f4ba252f70b804989272c6b38464a8, type: 3}
+    second: {fileID: 2800000, guid: efe533bdbc3c53b42b48fae10e5c1fbc, type: 3}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: chr_classic_sonic_skin_dif_HD
-    second: {fileID: 2800000, guid: 35ffba9e91b27784f9f2a38f2ecca4a4, type: 3}
+    second: {fileID: 2800000, guid: d46ec717b6ca0d9458d77969570877a0, type: 3}
   materials:
     importMaterials: 1
     materialName: 0

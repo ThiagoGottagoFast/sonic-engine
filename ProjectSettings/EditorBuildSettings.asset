@@ -6,5 +6,11 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Objects/Stages/Main Menu Zone/MainMenu.unity
+    guid: 8e581f7436f2c154f809ad661c02a295
+  - enabled: 1
     path: Assets/Objects/Stages/Debug/Test.unity
     guid: 6d0bc6803255824429dc235f92bb87d7
+  - enabled: 1
+    path: Assets/Objects/Stages/Chemical Plant Zone/CPZ.unity
+    guid: cea6827d0bf8391428fb4d515aa12a63
