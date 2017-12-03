@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteInEditMode]
 public class MaterialScroller : MonoBehaviour{
 	public Vector2 speed;
 	public Material material;

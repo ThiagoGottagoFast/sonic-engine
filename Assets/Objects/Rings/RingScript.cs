@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.Audio;
 
+[ExecuteInEditMode]
 public class RingScript : MonoBehaviour{
 	public bool SuperRing;
 	public float rotation;
@@ -10,7 +11,7 @@ public class RingScript : MonoBehaviour{
 	public AudioClip RingSound;
 	public new Rigidbody rigidbody;
 	public SphereCollider sphereCollider;
-	
+
 #region LostRing
 	public bool LostRing;
 	public float LifeTime = 4.2666666f;
