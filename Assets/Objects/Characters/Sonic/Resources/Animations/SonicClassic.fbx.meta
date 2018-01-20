@@ -346,47 +346,47 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CScloth
-    second: {fileID: 2100000, guid: b29911b0d43bc5746a34d34814ce22bf, type: 2}
+    second: {fileID: 2100000, guid: 725eb20021e95534ea92b473ac9b0da2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSeyewhiteL
-    second: {fileID: 2100000, guid: 74dbb86b0b2e9db4d9976bf459503e23, type: 2}
+    second: {fileID: 2100000, guid: d82b37c2a1f407d4b804b4c3b2a29fcb, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSeyewhiteR
-    second: {fileID: 2100000, guid: 43e67d5a71ec2034ea8b70376b3764ec, type: 2}
+    second: {fileID: 2100000, guid: e3c5edd1a6f25c94dae3566b7cab97c7, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSfur
-    second: {fileID: 2100000, guid: 84e54cdaee864bf4bb0e743e09fd66cc, type: 2}
+    second: {fileID: 2100000, guid: f4150e98401916b4d96eae29d7aed033, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSmouth
-    second: {fileID: 2100000, guid: 5278068b3f273d3478a0471e3eab2825, type: 2}
+    second: {fileID: 2100000, guid: 8c9f6c6d1b9bdc548bb507e4cf56b9d2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSnose
-    second: {fileID: 2100000, guid: 75bbce50a829f3d4a827626c78bc0418, type: 2}
+    second: {fileID: 2100000, guid: 90bb5050f140c524ea3b8178350b054a, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSshoes
-    second: {fileID: 2100000, guid: 8a8cbaff6bf53df43a244446f17eed89, type: 2}
+    second: {fileID: 2100000, guid: 41c97825180d2a849b2c26a22427b258, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSskin
-    second: {fileID: 2100000, guid: fabafa9dd625b2f4ab1315175dd35e7d, type: 2}
+    second: {fileID: 2100000, guid: fe02e421b115fa04fb6b1ba63cbc56aa, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: CSsole
-    second: {fileID: 2100000, guid: 2fd63b49530e9d4439da8d22f681f724, type: 2}
+    second: {fileID: 2100000, guid: b277f0e6ca33a34488f389b161e08434, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
@@ -459,7 +459,7 @@ ModelImporter:
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
-    tangentImportMode: 3
+    tangentImportMode: 0
     normalCalculationMode: 4
   importAnimation: 1
   copyAvatar: 0

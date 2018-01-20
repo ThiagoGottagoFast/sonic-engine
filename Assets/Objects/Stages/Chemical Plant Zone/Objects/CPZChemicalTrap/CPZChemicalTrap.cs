@@ -4,39 +4,39 @@ using UnityEngine;
 
 //[ExecuteInEditMode]
 public class CPZChemicalTrap : MonoBehaviour{
-	public Vector3 leftPos, rightPos, CenterL, CenterR;
+	public Vector3 LeftPos, RightPos, CenterL, CenterR;
 	public float Hight;
 	public float Width;
 	public float CurrentTime;
 	public bool LeftSide = true;
-	public bool enabled;
+	public bool Enabled;
 	public GameObject ChemicalBlob;
 
 	// Use this for initialization
 	void Start (){
-		leftPos = transform.position;
-		rightPos = transform.GetChild(0).position;
-		CenterL = (leftPos + rightPos) / 2;
+		LeftPos = transform.position;
+		RightPos = transform.GetChild(0).position;
+		CenterL = (LeftPos + RightPos) / 2;
 		CenterL.y += Hight;	//CPZChemicalHight;
 		CenterR = CenterL;
 		CenterL.x -= Width;
 		CenterR.x += Width;
 		ChemicalBlob = Instantiate(ChemicalBlob);
-		ChemicalBlob.transform.position = leftPos;
+		ChemicalBlob.transform.position = LeftPos;
 	}
 
 	// Update is called once per frame
 	void Update (){
 		CurrentTime += Time.deltaTime/2;
 		if(CurrentTime > 1){
-			if(enabled){
+			if(Enabled){
 				LeftSide = !LeftSide;
 			}
-			enabled = !enabled;
+			Enabled = !Enabled;
 			CurrentTime = 0;
 		}
 
-		if(enabled){
+		if(Enabled){
 			ChemicalBlob.transform.position = LeftSide ? CalculateBezierCurve(CurrentTime) : CalculateBezierCurve(1 - CurrentTime);
 		}
 	}
@@ -48,10 +48,10 @@ public class CPZChemicalTrap : MonoBehaviour{
 		uuu = uu * u;
 		timeS = time * time;
 		timeC = timeS * time;
-		Vector3 ret = uuu * leftPos;
+		Vector3 ret = uuu * LeftPos;
 		ret += 3 * uu * time * CenterL;
 		ret += 3 * u * timeS * CenterR;
-		ret += timeC * rightPos;
+		ret += timeC * RightPos;
 		return ret;
 	}
 }

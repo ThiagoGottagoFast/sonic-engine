@@ -1,6 +1,6 @@
 fileFormatVersion: 2
 guid: 43281c42f4eaa404f84d6a670fc65c70
-timeCreated: 1507362079
+timeCreated: 1513498494
 licenseType: Free
 ModelImporter:
   serializedVersion: 22
@@ -164,6 +164,8 @@ ModelImporter:
     100312: UpperArm_R
     100314: Wrist_L
     100316: Wrist_R
+    100318: chr_classic_SuperSonic_HD
+    100320: chr_classic_SuperSonic_HD 1
     400000: //RootNode
     400002: Arm01_L
     400004: Arm01_R
@@ -323,6 +325,8 @@ ModelImporter:
     400312: UpperArm_R
     400314: Wrist_L
     400316: Wrist_R
+    400318: chr_classic_SuperSonic_HD
+    400320: chr_classic_SuperSonic_HD 1
     2100000: CSmouth
     2100002: CSeyewhiteL
     2100004: CSeyewhiteR
@@ -332,16 +336,93 @@ ModelImporter:
     2100012: CScloth
     2100014: CSshoes
     2100016: CSsole
+    2100018: CSSmouth
+    2100020: CSSeyewhiteL
+    2100022: CSSeyewhiteR
+    2100024: CSSskin
+    2100026: CSSfur
+    2100028: CSSnose
+    2100030: CSScloth
+    2100032: CSSshoes
+    2100034: CSSsole
     2300000: //RootNode
     2300002: chr_classic_sonic_HD
     3300000: //RootNode
     3300002: chr_classic_sonic_HD
     4300000: chr_ClassicSonic_HD
     4300002: chr_classic_sonic_HD
+    4300004: chr_classic_SuperSonic_HD
+    7400000: balloon_loop.anm.hkx
     9500000: //RootNode
     11100000: //RootNode
     13700000: chr_classic_sonic_HD
-  externalObjects: {}
+    13700002: chr_classic_SuperSonic_HD 1
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSScloth
+    second: {fileID: 2100000, guid: ad098b1af0043a04d826bea56bc94479, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSeyewhiteL
+    second: {fileID: 2100000, guid: 2f4812638008a824f95fe2b3df93bf30, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSeyewhiteR
+    second: {fileID: 2100000, guid: 850e25f635ef63d458b4479a342fc1c8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSfur
+    second: {fileID: 2100000, guid: 5def7de78926c9d4d9ead4f72c7a6ad5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSmouth
+    second: {fileID: 2100000, guid: e928e8ff2db2f1542b948f0cdf42d8e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSnose
+    second: {fileID: 2100000, guid: 45d6ff615c5d2b644a7977198d0ccbf7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSshoes
+    second: {fileID: 2100000, guid: 48b98d332c011914fbaf827643119d34, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSskin
+    second: {fileID: 2100000, guid: 6bd39975de5a0774eb411b85de65fec9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CSSsole
+    second: {fileID: 2100000, guid: 374dc78bf276c2e48bf4ef2fe793b52a, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: chr_classic_SuperSonic_skin_dif_HD
+    second: {fileID: 2800000, guid: 1dd6fd290a8c741449e68d1ce0ef3073, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: chr_classic_sonic_cloth_dif_HD
+    second: {fileID: 2800000, guid: 26d41f9862a79034690c1accb2a8c631, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: chr_classic_sonic_eye_dif_HD
+    second: {fileID: 2800000, guid: 330f80640b9d40845a058e7fdfca27ab, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: chr_classic_sonic_shoe_dif_HD
+    second: {fileID: 2800000, guid: 1811fab9d68712547838cea3c9737273, type: 3}
   materials:
     importMaterials: 1
     materialName: 0
@@ -359,7 +440,7 @@ ModelImporter:
     animationImportWarnings: 
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
-    importAnimatedCustomProperties: 0
+    importAnimatedCustomProperties: 1
     animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
@@ -367,7 +448,35 @@ ModelImporter:
     animationWrapMode: 2
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: balloon_loop.anm.hkx
+      takeName: 
+      firstFrame: 0
+      lastFrame: 15
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
     isReadable: 1
   meshes:
     lODScreenPercentages: []
@@ -409,12 +518,12 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    rootMotionBoneName: ClassicSonicRoot
+    rootMotionBoneName: chr_classic_SuperSonic_HD
     rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 79c2482c5d869f142a66ee8e4dfcd61c,
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 914619769aa69cf46a412794e74238ad,
     type: 3}
   animationType: 2
   humanoidOversampling: 1

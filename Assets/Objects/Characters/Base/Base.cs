@@ -4,6 +4,8 @@ using System.Diagnostics;
 using UnityEngine;
 using InControl;
 using TMPro;
+using UnityEngine.Networking;
+using Debug = UnityEngine.Debug;
 
 namespace SonicEngine{
 	[RequireComponent(typeof(AudioSource))]
@@ -11,14 +13,23 @@ namespace SonicEngine{
 		public const string Name = "Base test character";
 
 		public Transform Transform;
-		public Transform ModelTransform;
+		public Transform NormalModelTransform;
+		public Transform SuperModelTransform;
+		public Transform modelTransform{
+			get{return Super ? SuperModelTransform : NormalModelTransform;}
+		}
 		public Rigidbody Rigidbody;
 		public AudioSource AudioSource;
-		public Animator Animator;
+		public Animator NormalAnimator;
+		public Animator SuperAnimator;
+		public Animator animator{
+			get{return Super ? SuperAnimator : NormalAnimator;}
+		}
 		public CapsuleCollider NormalHitbox;
 		public SphereCollider BallHitbox;
-		public PhysicMaterial physicMaterial;
+		public PhysicMaterial PhysicMaterial;
 		public Vector3 CheckPointPos;
+		public Vector3 LastVelocity;
 		//public ulong CheckPointTime;
 		public bool Invisible;
 		public bool InAir;
@@ -43,6 +54,7 @@ namespace SonicEngine{
 		public float SpeedshoesTime;
 		public float SpinDashTime;
 		public float SuperPeelOutTime;
+		public bool Super;
 		public bool IsFlipped;
 		public bool IsHurt;
 		public bool IsDead;
@@ -52,7 +64,7 @@ namespace SonicEngine{
 
 		public DateTime LastInput = DateTime.Now;
 		public float WaitTime;
-		public Vector3 GroundAngle;
+		//public Vector3 GroundAngle;
 
 		public static ulong Score;
 		public static Stopwatch Time;
@@ -73,52 +85,74 @@ namespace SonicEngine{
 
 		private float angle{
 			get{
-				if (!InAir){
-					RaycastHit hitA;
-					const int div = 3;
-					if (Physics.Raycast(Transform.position + (Transform.forward / div), -Transform.up, out hitA)){
-						GroundAngle = Vector3.RotateTowards(transform.up, hitA.normal, 1, 1);
-						return GroundAngle.x * Mathf.Rad2Deg;
-					}
+				if(!InAir){
+					//GroundAngle = Vector3.RotateTowards(transform.up, GroundNormal, 1, 1);
+					return GroundNormal.x * Mathf.Rad2Deg;
 				}
+
 				return 0;
 			}
 		}
 
-		private Vector3 RelativeVel{
+		private Vector3 GroundNormal{
 			get{
-				return transform.InverseTransformDirection(Vel);
-			}
-			set{
-				Vel = transform.TransformDirection(value);
+				if(!InAir){
+					RaycastHit hitA, hitB;
+					const int div = 3;
+					Vector3 startLeft = Transform.position,
+					        startRight = startLeft,
+					        direction = -Transform.up;
+					startLeft += -Transform.right / div;
+					startRight += Transform.right / div;
+					Debug.DrawRay(startLeft, direction, Color.red);
+					Debug.DrawRay(startRight, direction, Color.blue);
+					bool left, right;
+					left = Physics.Raycast(startLeft, direction, out hitA);
+					right = Physics.Raycast(startRight, direction, out hitB);
+					if(left && right){
+						return (hitA.normal + hitB.normal) / 2;
+					}
+
+					if(left){
+						return hitA.normal;
+					}
+
+					if(right){
+						return hitB.normal;
+					}
+				}
+
+				return Vector3.zero;
 			}
 		}
 
-		private Vector3 Vel{
+		#region Velocity
+
+		private Vector3 relativeVel{
+			get{return transform.InverseTransformDirection(vel);}
+			set{vel = transform.TransformDirection(value);}
+		}
+
+		private Vector3 vel{
 			get{return Rigidbody.velocity;}
 			set{Rigidbody.velocity = value;}
 		}
 
+		#region YVeclocity
+
 		private float y{
-			set{
-				if (InAir){
-					Rigidbody.AddForce(0, value * YForceMult, 0, ForceMode.Force);
-				} else{
-					Rigidbody.AddRelativeForce(0, value * YForceMult, 0, ForceMode.Force);
-				}
-			}
-			get{ return RelativeVel.y; }
+			set{yRel = value;}
+			get{return yRel;}
 		}
 
-		private float x{
-			set{
-				if (InAir){
-					Rigidbody.AddForce(value * XForceMult, 0, 0, ForceMode.Force);
-				} else{
-					Rigidbody.AddRelativeForce(value * XForceMult, 0, 0, ForceMode.Force);
-				}
-			}
-			get{ return RelativeVel.x; }
+		private float yRel{
+			set{Rigidbody.AddRelativeForce(0, value * YForceMult, 0, ForceMode.Force);}
+			get{return relativeVel.y;}
+		}
+
+		private float yAbs{
+			set{Rigidbody.AddForce(0, value * YForceMult, 0, ForceMode.Force);}
+			get{return vel.y;}
 		}
 
 		public void setY(float y){
@@ -130,6 +164,43 @@ namespace SonicEngine{
 			}
 		}
 
+		public void setYAbs(float y){
+			var vel = this.vel;
+			vel.y = y;
+			this.vel = vel;
+		}
+
+		public void setYRel(float y){
+			var locVel = transform.InverseTransformDirection(vel);
+			locVel.y = y;
+			vel = transform.TransformDirection(locVel);
+		}
+
+		#endregion
+
+		#region XVelocity
+
+		private float x{
+			set{xRel = value;}
+			get{return xRel;}
+		}
+
+		private float xRel{
+			set{
+				Vector3 force = new Vector3(value * XForceMult, 0, 0);
+				/*Debug.Log("Force: " + force);
+				force = Vector3.ProjectOnPlane(force, GroundNormal).normalized;
+				Debug.Log("Projected Force: " + force);*/
+				Rigidbody.AddRelativeForce(force, ForceMode.Force);
+			}
+			get{return relativeVel.x;}
+		}
+
+		private float xAbs{
+			set{Rigidbody.AddForce(value * XForceMult, 0, 0, ForceMode.Force);}
+			get{return vel.x;}
+		}
+
 		public void setX(float x){
 			if(InAir || x == 0){
 				setXAbs(x);
@@ -139,36 +210,40 @@ namespace SonicEngine{
 			}
 		}
 
-		public void setYAbs(float y){
-			var vel = Vel;
-			vel.y = y;
-			Vel = vel;
-		}
-
 		public void setXAbs(float x){
-			var vel = Vel;
+			var vel = this.vel;
 			vel.x = x;
-			Vel = vel;
-		}
-
-		public void setYRel(float y){
-			var locVel = transform.InverseTransformDirection(Vel);
-			locVel.y = y;
-			Vel = transform.TransformDirection(locVel);
+			this.vel = vel;
 		}
 
 		public void setXRel(float x){
-			var locVel = transform.InverseTransformDirection(Vel);
+			var locVel = transform.InverseTransformDirection(vel);
 			locVel.x = x;
-			Vel = transform.TransformDirection(locVel);
+			vel = transform.TransformDirection(locVel);
 		}
 
-		private const float Acceleration = 0.046875f;
-		private const float Decceleration = 0.5f;
-		private const float RollDeccel = 0.1484375f;
-		private const float Friction = Acceleration;
-		private const float TopSpeed = 6;
-		private const float JumpSpeed = 6.5f;
+		#endregion
+
+		#endregion
+
+		private float acceleration{
+			get{return 0.046875f * (Super ? 2 : 1);}
+		}
+		private float decceleration{
+			get{return -0.5f * (Super ? 2 : 1);}
+		}
+		private float rollDeccel{
+			get{return 0.1484375f * (Super ? 2 : 1);}
+		}
+		private float friction{
+			get{return acceleration;}
+		}
+		private float topSpeed{
+			get{return 6 * (Super ? 2 : 1);}
+		}
+		private float jumpSpeed{
+			get{return Super ? 7 : 6.5f;}
+		}
 
 		#region sounds
 
@@ -183,27 +258,63 @@ namespace SonicEngine{
 
 		#endregion
 
-		public Transform MouthCenterBone;
-		public Transform MouthDead2Bone;
-		public Transform MouthSideBone;
-		public Transform MouthSide2Bone;
+		public Transform NormalMouthCenterBone;
+		public Transform SuperMouthCenterBone;
+		public Transform mouthCenterBone{
+			get{return Super ? SuperMouthCenterBone : NormalMouthCenterBone;}
+		}
+
+		public Transform NormalMouthDead2Bone;
+		public Transform SuperMouthDead2Bone;
+		public Transform mouthDead2Bone{
+			get{return Super ? SuperMouthDead2Bone : NormalMouthDead2Bone;}
+		}
+
+		public Transform NormalMouthSideBone;
+		public Transform SuperMouthSideBone;
+		public Transform mouthSideBone{
+			get{return Super ? SuperMouthSideBone : NormalMouthSideBone;}
+		}
+
+		public Transform NormalMouthSide2Bone;
+		public Transform SuperMouthSide2Bone;
+		public Transform mouthSide2Bone{
+			get{return Super ? SuperMouthSide2Bone : NormalMouthSide2Bone;}
+		}
+
+		public float Scale = 2;
 
 		// Use this for initialization
 		private void Awake(){
 			Transform = GetComponent<Transform>();
 			Rigidbody = GetComponent<Rigidbody>();
 			AudioSource = GetComponent<AudioSource>();
-			Animator = GetComponent<Animator>();
 			NormalHitbox = GetComponent<CapsuleCollider>();
 			BallHitbox = GetComponent<SphereCollider>();
-			ModelTransform = Transform.GetChild(0).transform;
+			NormalModelTransform = Transform.GetChild(0);
+			NormalAnimator = NormalModelTransform.GetComponent<Animator>();
+			SuperModelTransform = Transform.GetChild(1);
+			SuperAnimator = SuperModelTransform.GetComponent<Animator>();
+			SuperAnimator.SetLayerWeight(1, 1f);
 			Time = new Stopwatch();
 			Time.Start(); // Move to when act begins
-			MouthCenterBone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Center");
-			MouthDead2Bone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/mesh_mouth_dead2");
-			MouthSideBone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side");
-			MouthSide2Bone = ModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side_02");
+			NormalMouthCenterBone = NormalModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Center");
+			NormalMouthDead2Bone = NormalModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/mesh_mouth_dead2");
+			NormalMouthSideBone = NormalModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side");
+			NormalMouthSide2Bone = NormalModelTransform.Find("ClassicSonicRoot/Reference/Hips/Neck/Head/Mouth_Side_02");
+			SuperMouthCenterBone = SuperModelTransform.Find("chr_classic_SuperSonic_HD/Reference/Hips/Neck/Head/Mouth_Center");
+			SuperMouthDead2Bone =
+				SuperModelTransform.Find("chr_classic_SuperSonic_HD/Reference/Hips/Neck/Head/mesh_mouth_dead2");
+			SuperMouthSideBone = SuperModelTransform.Find("chr_classic_SuperSonic_HD/Reference/Hips/Neck/Head/Mouth_Side");
+			SuperMouthSide2Bone = SuperModelTransform.Find("chr_classic_SuperSonic_HD/Reference/Hips/Neck/Head/Mouth_Side_02");
+			GameObject startPosition = GameObject.FindWithTag("StartPosition");
+			if(startPosition == null)
+				throw new Exception(
+				                    "Missing Start Position object. Make sure you add a object tagged with \"StartPosition\" to signify where to start sonic at."
+				                   );
+			transform.position = startPosition.transform.position;
 			CheckPointPos = transform.position;
+			superTransform(false);
 		}
 
 		// Update is called once per frame
@@ -213,11 +324,12 @@ namespace SonicEngine{
 			if(!IsHurt && CanMove){
 				controlMove();
 			}
+
 			debug();
 			bool result = InputDevice.AnyButton ||
 			              InputDevice.LeftStick.Vector != Vector2.zero ||
 			              InputDevice.DPad.Vector != Vector2.zero;
-			if(result){
+			if(result || Super){
 				LastInput = DateTime.Now;
 				WaitTime = 0;
 			}
@@ -230,32 +342,49 @@ namespace SonicEngine{
 			controlAnimation();
 		}
 
-		[Conditional("UNITY_EDITOR")] private void debug(){
+		[Conditional("UNITY_EDITOR")]
+		private void debug(){
 #if UNITY_EDITOR
-			DebugText.text = string.Format("Velocity: {0}\nRelative Velocity: {1}\nState: {2}\nAngle: {3}\nFloor Angle: {4}",
-			                               Vel,
-			                               RelativeVel,
-			                               State,
-			                               angle,
-			                               GroundAngle
-			                               );
+			DebugText.text =
+				string.Format("Depth: {0}\nRot: {1}\nVelocity: {2}\nRelative Velocity: {3}\nState: {4}\nAngle: {5}\nFloor Angle: {6}\nSuper Peel-Out time: {7}",
+				              transform.position.z,
+				              transform.rotation.eulerAngles.y,
+				              vel,
+				              relativeVel,
+				              State,
+				              angle,
+				              GroundNormal,
+				              (int)SuperPeelOutTime
+				             );
 #endif
-			if (Input.GetKeyDown(KeyCode.Alpha1)){
+			if(Input.GetKeyDown(KeyCode.Alpha1)){
 				if(Shield != null){
 					Destroy(Shield.Sphere.gameObject);
 				}
-			} else if (Input.GetKeyDown(KeyCode.Alpha2)){
+			}
+			else if(Input.GetKeyDown(KeyCode.Alpha2)){
 				Shield.createShield<Shield>(this);
-			} else if (Input.GetKeyDown(KeyCode.Alpha3)){
+			}
+			else if(Input.GetKeyDown(KeyCode.Alpha3)){
 				Shield.createShield<ElectricShield>(this);
-			} else if (Input.GetKeyDown(KeyCode.Alpha4)){
+			}
+			else if(Input.GetKeyDown(KeyCode.Alpha4)){
 				Shield.createShield<BubbleShield>(this);
-			} else if (Input.GetKeyDown(KeyCode.Alpha5)){
+			}
+			else if(Input.GetKeyDown(KeyCode.Alpha5)){
 				Shield.createShield<FireShield>(this);
 			}
 		}
 
 		protected virtual void clearOnFrame(){
+			/*if(Super){
+				SuperModelTransform.gameObject.SetActive(true);
+				NormalModelTransform.gameObject.SetActive(false);
+			}
+			else{
+				SuperModelTransform.gameObject.SetActive(false);
+				NormalModelTransform.gameObject.SetActive(true);
+			}*/
 			Jumping = false;
 			Rigidbody.useGravity = true;
 			if(!IsHurt &&
@@ -269,266 +398,394 @@ namespace SonicEngine{
 					SpinDashTime = 0;
 				}
 			}
+
+			Vector3 vel = relativeVel;
+			vel.z = 0;
+			relativeVel = vel;
 		}
 
 		protected virtual void controlMove(){
-			const float minSpeed = 0.125f;
+			const float minSpeed = 0.1f;
 			var up = InputDevice.DPadUp;
 			var down = InputDevice.DPadDown;
-			if((up ^ down) && (Mathf.Abs(x) < minSpeed)){
+			if((up ^ down) &&
+			   (Mathf.Abs(x) < minSpeed)){
 				if(up){
 					LookingUp = true;
 				}
+
 				if(down){
 					LookingDown = true;
 				}
-			} else{
+			}
+			else{
 				bool right = InputDevice.DPadRight;
 				bool left = InputDevice.DPadLeft;
-				if (right ^ left){
-					if (right){
-						if (State == State.Roll){
+				if(right ^ left){
+					if(right){
+						if(State == State.Roll){
 							if(x < 0){
 								//x = RollDeccel * UnityEngine.Time.deltaTime;
-								physicMaterial.dynamicFriction = Coasting;
+								PhysicMaterial.dynamicFriction = Coasting;
 							}
 							else{
-								physicMaterial.dynamicFriction = MovingFriction;
-							}
-						} else{
-							if (x < -minSpeed &&
-							    !InAir){
-								//x = Decceleration * UnityEngine.Time.deltaTime;
-								physicMaterial.dynamicFriction = StopingFriction;
-							} else{
-								physicMaterial.dynamicFriction = MovingFriction;
-								if (x <= TopSpeed){
-									x = Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
-									if (x > TopSpeed){
-										setX(TopSpeed);
-									}
-								}
+								PhysicMaterial.dynamicFriction = MovingFriction;
 							}
 						}
-					} else{
-						if (State == State.Roll){
-							if (x > 0){
-								//x = -RollDeccel * UnityEngine.Time.deltaTime;
-								physicMaterial.dynamicFriction = Coasting;
+						else{
+							if(x < -minSpeed &&
+							   !InAir){
+								x = -acceleration * UnityEngine.Time.deltaTime;
+								PhysicMaterial.dynamicFriction = StopingFriction;
 							}
 							else{
-								physicMaterial.dynamicFriction = MovingFriction;
-							}
-						} else{
-							if (x > minSpeed &&
-							    !InAir){
-								//x = -Decceleration * UnityEngine.Time.deltaTime;
-								physicMaterial.dynamicFriction = StopingFriction;
-							} else{
-								physicMaterial.dynamicFriction = MovingFriction;
-								if (x >= -TopSpeed){
-									x = -Acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
-									if (x < -TopSpeed){
-										setX(-TopSpeed);
+								PhysicMaterial.dynamicFriction = MovingFriction;
+								if(x <= topSpeed){
+									x = acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
+									if(x > topSpeed){
+										setX(topSpeed);
 									}
 								}
 							}
 						}
 					}
-				} else{
-					physicMaterial.dynamicFriction = Coasting;
+					else{
+						if(State == State.Roll){
+							if(x > 0){
+								//x = -RollDeccel * UnityEngine.Time.deltaTime;
+								PhysicMaterial.dynamicFriction = Coasting;
+							}
+							else{
+								PhysicMaterial.dynamicFriction = MovingFriction;
+							}
+						}
+						else{
+							if(x > minSpeed &&
+							   !InAir){
+								x = acceleration * UnityEngine.Time.deltaTime;
+								PhysicMaterial.dynamicFriction = StopingFriction;
+							}
+							else{
+								PhysicMaterial.dynamicFriction = MovingFriction;
+								if(x >= -topSpeed){
+									x = -acceleration * (InAir ? 2 : 1) * UnityEngine.Time.deltaTime;
+									if(x < -topSpeed){
+										setX(-topSpeed);
+									}
+								}
+							}
+						}
+					}
+				}
+				else{
+					PhysicMaterial.dynamicFriction = Coasting;
 				}
 			}
 
-			if (LookingDown){
+			if(LookingDown){
 				NormalHitbox.height = 1.5f;
 				NormalHitbox.center = new Vector3(0, -0.25f);
-			} else{
+			}
+			else{
 				NormalHitbox.height = 2;
 				NormalHitbox.center = Vector3.zero;
 			}
 
-			if (State != State.Jump){
-				if (Math.Abs(x) < minSpeed){
+			if(State != State.Jump){
+				if(Math.Abs(x) < minSpeed){
 					//setX(0);
-				} else{
-					if (x > minSpeed){
+				}
+				else{
+					if(x > minSpeed){
 						IsFlipped = false;
-					} else if (x < -minSpeed){
+					}
+					else if(x < -minSpeed){
 						IsFlipped = true;
 					}
 				}
 			}
-			controlJump();
 
+			//var tempLastVelocity = LastVelocity;
+			LastVelocity = relativeVel;
+			controlJump();
 			if(!InAir){
-				if(Mathf.Abs(x) > 3){
-					setYRel(-2);
+				float absX = Mathf.Abs(xRel);
+				if(absX > 2){
+					//setYRel(-2 * (Super ? 2 : 1));
+					setYRel(-(absX / (6 * (Super ? 0.5f : 1.5f))));
+					yAbs = (-0.25f + (1 / xRel)) / 4;
+					xRel = (Mathf.Abs(angle)/50000) * (xRel > 0 ? 1 : -1);
 					Rigidbody.useGravity = false;
-					UnityEngine.Debug.Log("Sticking to surface");
+					Debug.Log("Sticking to surface");
 				}
 			}
 		}
 
+		public Coroutine SuperPeelOutCoroutine;
+
+		public IEnumerator SuperPeelOut(){
+			SuperPeelOutTime = 1;
+			for(;;){
+				yield return new WaitForEndOfFrame();
+				SuperPeelOutTime += UnityEngine.Time.deltaTime * 4;
+			}
+		}
+
 		protected virtual void controlJump(){
-			if (InputDevice.Action1.WasPressed || InputDevice.Action2.WasPressed || InputDevice.Action3.WasPressed || InputDevice.Action4.WasPressed){
-				if(LookingUp){
-					// Super Peel-Out
-				} else if(LookingDown){
+			/*if(InputDevice.Action1 ||
+			   InputDevice.Action2 ||
+			   InputDevice.Action3 ||
+			   InputDevice.Action4){
+			}*/
+			if(!LookingUp){
+				if(SuperPeelOutTime > 0){
+					if(SuperPeelOutTime > 1){
+						setXRel(topSpeed * (IsFlipped ? -1 : 1));
+					}
+					SuperPeelOutTime = 0;
+					StopCoroutine(SuperPeelOutCoroutine);
+				}
+			}
+			if(InputDevice.Action1.WasPressed ||
+			        InputDevice.Action2.WasPressed ||
+			        InputDevice.Action3.WasPressed ||
+			        InputDevice.Action4.WasPressed){
+				if(LookingUp){ // Super Peel-Out
+					LookingUp = false;
+					if(SuperPeelOutTime <= 0){
+						SuperPeelOutCoroutine = StartCoroutine(SuperPeelOut());
+					}
+				}
+				if(LookingDown){
 					// Spindash
-				} else{
-					if (JumpsLeft != 0){
-						y = JumpSpeed;
-						JumpsLeft--;
-						InAir = true;
-						State = State.Jump;
-						Jumping = true;
-						AudioSource.PlayOneShot(JumpSound, 0.5f);
-						if (onJump != null){
-							onJump(this);
+				}
+				else{
+					if(JumpsLeft != 0){
+						if(SuperPeelOutTime <= 0){
+							y = jumpSpeed;
+							JumpsLeft--;
+							InAir = true;
+							State = State.Jump;
+							Jumping = true;
+							AudioSource.PlayOneShot(JumpSound, 0.5f);
+							if(onJump != null){
+								onJump(this);
+							}
 						}
-					} else{
+					}
+					else{
 						onJumpAction();
 					}
 				}
-			} else if ((InputDevice.Action1.WasReleased || InputDevice.Action2.WasReleased || InputDevice.Action3.WasReleased || InputDevice.Action4.WasReleased) && State == State.Jump && Vel.y > 4){
-				setY(4);
+			}
+			else if(InputDevice.Action1.WasReleased ||
+			        InputDevice.Action2.WasReleased ||
+			        InputDevice.Action3.WasReleased ||
+			        InputDevice.Action4.WasReleased){
+				if(State == State.Jump &&
+				   vel.y > 4){
+					setY(4);
+				}
 			}
 		}
 
 		protected virtual void controlAnimation(){
 			var rot = Transform.eulerAngles;
-			var modelRot = ModelTransform.localEulerAngles;
+			var modelRot = modelTransform.localEulerAngles;
 			var flip = IsFlipped ? -1 : 1;
 			rot.z = -angle;
 			if(!IsDead){
-				modelRot.y = 90 * flip;
+				if(!InAir){
+					modelRot.y = 90 * flip;
+				}
 			}
 			else{
 				modelRot.y = 180;
 			}
-			transform.eulerAngles = rot;
-			ModelTransform.localEulerAngles = modelRot;
-			if(Invisible){
-				ModelTransform.localScale = Vector3.zero;
-			}
-			else{
-				ModelTransform.localScale = Vector3.one * 2;
-			}
 
-			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.WaitTime),
+			transform.eulerAngles = rot;
+			modelTransform.localEulerAngles = modelRot;
+			modelTransform.gameObject.SetActive(!Invisible);
+			animator.SetFloat(animatorParameter(AnimatorParamtersValues.WaitTime),
 			                  WaitTime
 			                 );
 			float speed = Mathf.Abs(x);
 			if(State != State.Air){
-				Animator.SetFloat(animatorParameter(AnimatorParamtersValues.Speed),
-				                  speed
+				animator.SetFloat(animatorParameter(AnimatorParamtersValues.Speed),
+				                  SuperPeelOutTime > 0
+					                  ? Mathf.Clamp(SuperPeelOutTime, 0f, 12f)
+					                  : speed
 				                 );
 			}
+
 			if(State != State.Jump){
-				float percent = Mathf.Clamp01(speed / 6f) * 2;
-				Animator.SetFloat(animatorParameter(AnimatorParamtersValues.SpinSpeed),
-				                  percent + 1
+				float percent = Mathf.Clamp01(speed / topSpeed);
+				animator.SetLayerWeight(2, percent);
+				animator.SetFloat(animatorParameter(AnimatorParamtersValues.SpinSpeed),
+				                  ((percent * 2) + 1) * (Super ? 1 : -1)
 				                 );
 			}
-			Animator.SetFloat(animatorParameter(AnimatorParamtersValues.InvulnTimer),
+
+			animator.SetFloat(animatorParameter(AnimatorParamtersValues.InvulnTimer),
 			                  InvulnerableTime
 			                 );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Jumping),
-			                  State == State.Jump
-			                 );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingUp),
-			                 LookingUp
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.Jumping),
+			                 State == State.Jump
+			                );
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingUp),
+			                 SuperPeelOutTime <= 0 && LookingUp
 			                );
 			LookingUp = false;
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingDown),
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.LookingDown),
 			                 LookingDown
 			                );
 			LookingDown = false;
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.SpinDashing),
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.SpinDashing),
 			                 false
 			                );
-
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.SuperPeelOut),
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.SuperPeelOut),
 			                 false
 			                );
-			Animator.SetBool(animatorParameter(AnimatorParamtersValues.Rolling),
+			animator.SetBool(animatorParameter(AnimatorParamtersValues.Rolling),
 			                 false
 			                );
-			MouthCenterBone.localScale = Vector3.zero;
-			MouthDead2Bone.localScale = Vector3.zero;
+			mouthCenterBone.localScale = Vector3.zero;
+			mouthDead2Bone.localScale = Vector3.zero;
 			if(IsFlipped){
-				MouthSideBone.localScale = Vector3.zero;
-				MouthSide2Bone.localScale = Vector3.one;
-			} else{
-				MouthSide2Bone.localScale = Vector3.zero;
-				MouthSideBone.localScale = Vector3.one;
+				mouthSideBone.localScale = Vector3.zero;
+				mouthSide2Bone.localScale = Vector3.one;
+			}
+			else{
+				mouthSide2Bone.localScale = Vector3.zero;
+				mouthSideBone.localScale = Vector3.one;
 			}
 		}
 
 		public virtual void onJumpAction(){
+			if(Super){
+				superTransform(false);
+				return;
+			}
+
+			if(Rings >= 50){
+				superTransform(true);
+				return;
+			}
+
 			if(Shield != null){
 				Shield.onJumpAction();
 			}
 		}
 
+		public void superTransform(){
+			superTransform(!Super);
+		}
+
+		private Coroutine _ringDrain;
+
+		public void superTransform(bool toSuper){
+			if(toSuper){
+				Super = true;
+				SuperModelTransform.gameObject.SetActive(true);
+				NormalModelTransform.gameObject.SetActive(false);
+				_ringDrain = StartCoroutine(superRingDrain());
+			}
+			else{
+				Super = false;
+				SuperModelTransform.gameObject.SetActive(false);
+				NormalModelTransform.gameObject.SetActive(true);
+				if(_ringDrain != null){
+					StopCoroutine(_ringDrain);
+				}
+			}
+		}
+
+		private IEnumerator superRingDrain(){
+			while(Rings > 0){
+				yield return new WaitForSeconds(1.01f);
+				Rings--;
+			}
+
+			_ringDrain = null;
+			superTransform(false);
+		}
+
 		public float Speed = 4.5f;
 
 		public virtual void damage(Damage damage, Vector3 damagePosition){
-			if(InvincibilityTime > 0 || InvulnerableTime > 0) return;
+			if(InvincibilityTime > 0 || // Don't take damage if you have invincibility
+			   InvulnerableTime > 0 || // Don't take damage if we just recently took damage
+			   Super) // Don't take damage because super sonic doesn't care about damage
+				return;
 			if(Shield != null){
-				if (Shield.damage(damage)){
+				if(Shield.damage(damage)){
 					AudioSource.PlayOneShot(DieSound, 1f);
-					KnockBack(damagePosition.x);
+					knockBack(damagePosition.x);
 				}
+
 				return;
 			}
+
 			if(Rings != 0){
 				AudioSource.PlayOneShot(RingLossSound, 0.5f);
-				float Speed = this.Speed;
-				float Angle = 0;
+				float speed = Speed;
+				float angle = 0;
 				for(int count = 0; Rings > 0 && count < 64; Rings--){
 					count++;
 					var ring = Instantiate(Resources.Load<GameObject>("Prefabs/LostRing")).GetComponent<RingScript>();
 					Physics.IgnoreCollision(GetComponent<CapsuleCollider>(), ring.GetComponents<SphereCollider>()[0]);
 					Physics.IgnoreCollision(GetComponent<SphereCollider>(), ring.GetComponents<SphereCollider>()[0]);
-
 					Vector3 result = new Vector3();
-					result.y = -Mathf.Sin(Angle) * Speed;
-					result.x = Mathf.Cos(Angle) * Speed;
+					result.y = -Mathf.Sin(angle) * speed;
+					result.x = Mathf.Cos(angle) * speed;
 					if(count % 2 == 1){
-						Angle -= 22.5f * Mathf.Deg2Rad;
+						angle -= 22.5f * Mathf.Deg2Rad;
 						result.x *= -1;
 					}
+
 					ring.transform.position = Transform.position;
-					ring.rigidbody.velocity = result;
-					if(count % 16 == 0 && count != 0){
-						Angle = 0;
-						Speed /= 2;
+					ring.Rigidbody.velocity = result;
+					if(count % 16 == 0 &&
+					   count != 0){
+						angle = 0;
+						speed /= 2;
 					}
+
 					//Rings--; return;
 				}
+
 				Rings = 0;
 			}
 			else{
-				// die
-				AudioSource.PlayOneShot(DieSound, 1f);
-				State = State.Normal;
-				InAir = true;
-				IsDead = true;
-				CanMove = false;
-				Vel = new Vector3(0, 7);
-				SmoothCamera.enabled = false;
-				NormalHitbox.enabled = false;
-				BallHitbox.enabled = false;
-				StartCoroutine(Respawn());
-				Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Die));
+				die();
 				return;
 			}
-			KnockBack(damagePosition.x);
+
+			knockBack(damagePosition.x);
 		}
 
-		private IEnumerator Respawn(){
+		private void die(){
+			AudioSource.PlayOneShot(DieSound, 1f);
+			State = State.Normal;
+			InAir = true;
+			IsDead = true;
+			CanMove = false;
+			vel = new Vector3(0, 7);
+			Vector3 pos = transform.position;
+			pos.z -= 2;
+			transform.position = pos;
+			SmoothCamera.enabled = false;
+			NormalHitbox.enabled = false;
+			BallHitbox.enabled = false;
+			if(Lives != 0){
+				Lives--;
+				StartCoroutine(respawn());
+			}
+
+			animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Die));
+		}
+
+		private IEnumerator respawn(){
 			yield return new WaitForSeconds(2);
 			transform.position = CheckPointPos;
 			CanMove = true;
@@ -539,15 +796,16 @@ namespace SonicEngine{
 			BallHitbox.enabled = false;
 		}
 
-		private IEnumerator BlinkAnim(){
+		private IEnumerator blinkAnim(){
 			while(InvulnerableTime > 0){
 				Invisible = !Invisible;
 				yield return new WaitForSeconds(0.066666599999999993f);
 			}
+
 			Invisible = false;
 		}
 
-		public void KnockBack(float damagePosition){
+		public void knockBack(float damagePosition){
 			IsHurt = true;
 			InvulnerableTime = 2;
 			// fly back
@@ -555,9 +813,9 @@ namespace SonicEngine{
 			if(damagePosition > transform.position.x){
 				velocity.x *= -1;
 			}
-			Vel = velocity;
 
-			Animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Hurt));
+			vel = velocity;
+			animator.SetTrigger(animatorParameter(AnimatorParamtersValues.Hurt));
 		}
 
 		private static string animatorParameter(AnimatorParamtersValues value){
@@ -565,11 +823,33 @@ namespace SonicEngine{
 		}
 
 		private enum AnimatorParamtersValues{
-			WaitTime, Speed, SpinSpeed, InvulnTimer, Jumping, LookingUp, LookingDown, SpinDashing, SuperPeelOut, Rolling, Hurt, Die
+			WaitTime,
+			Speed,
+			SpinSpeed,
+			InvulnTimer,
+			Jumping,
+			LookingUp,
+			LookingDown,
+			SpinDashing,
+			SuperPeelOut,
+			Rolling,
+			Hurt,
+			Die
 		}
 
 		private static readonly string[] AnimatorParamterStrings = {
-			"Wait Time", "Speed", "SpinSpeed", "InvulnTimer", "Jumping", "LookingUp", "LookingDown", "SpinDashing", "Super Peel-out", "Rolling", "Hurt", "Die"
+			"Wait Time",
+			"Speed",
+			"SpinSpeed",
+			"InvulnTimer",
+			"Jumping",
+			"LookingUp",
+			"LookingDown",
+			"SpinDashing",
+			"Super Peel-out",
+			"Rolling",
+			"Hurt",
+			"Die"
 		};
 
 		/*protected virtual void OnCollisionEnter(Collision hit){
@@ -579,21 +859,45 @@ namespace SonicEngine{
 		}*/
 
 		protected virtual void OnTriggerEnter(Collider hit){
-			if(IsDead) return;
-			if(hit.CompareTag("Damage") && InvulnerableTime <= 0){
+			if(IsDead)
+				return;
+			Debug.Log(hit.tag);
+			if(hit.CompareTag("Damage") &&
+			   InvulnerableTime <= 0){
 				damage(hit.GetComponent<DamageData>(), hit.transform.position);
-			} else if (hit.CompareTag("Ground")){
+			}
+			else if(hit.tag.StartsWith("Ground")){
+				FloorType floorType;
+				switch(hit.tag.Substring(hit.tag.IndexOf("/", StringComparison.Ordinal))){
+				case "Concrete":
+					floorType = FloorType.Concrete;
+					break;
+				case "Metal":
+					floorType = FloorType.Metal;
+					break;
+				case "Grass":
+					floorType = FloorType.Grass;
+					break;
+				default:
+					floorType = FloorType.Concrete;
+					break;
+				}
+
+				playFootStep(floorType);
+				Debug.Log(floorType);
 				if(IsHurt){
 					IsHurt = false;
 					setX(0);
-					StartCoroutine(BlinkAnim());
+					StartCoroutine(blinkAnim());
 				}
 			}
 		}
 
 		protected virtual void OnTriggerStay(Collider hit){
-			if(IsDead) return;
-			if (hit.CompareTag("Ground") && !Jumping){
+			if(IsDead)
+				return;
+			if(hit.tag.StartsWith("Ground") &&
+			   !Jumping){
 				JumpsLeft = JumpsToResetTo;
 				InAir = false;
 				State = State.Normal;
@@ -601,15 +905,26 @@ namespace SonicEngine{
 		}
 
 		protected virtual void OnTriggerExit(Collider hit){
-			if(IsDead) return;
-			if (hit.CompareTag("Ground")){
-				if (JumpsLeft != 0 && State != State.Jump){
+			if(IsDead)
+				return;
+			if(hit.tag.StartsWith("Ground")){
+				if(JumpsLeft != 0 &&
+				   State != State.Jump){
 					JumpsLeft--;
 					State = State.Air;
 					InAir = true;
-
-					if (onAir != null) onAir(this);
+					if(onAir != null)
+						onAir(this);
 				}
+			}
+		}
+
+		public virtual void playFootStep(FloorType floorType){
+			switch(floorType){
+			case FloorType.Concrete: break;
+			case FloorType.Grass: break;
+			case FloorType.Metal: break;
+			default: throw new ArgumentOutOfRangeException("floorType", floorType, null);
 			}
 		}
 
@@ -634,9 +949,11 @@ namespace SonicEngine{
 		#endregion
 	}
 
-
 	public enum State{
-		Normal, Air, Roll, Jump
+		Normal,
+		Air,
+		Roll,
+		Jump
 	}
 
 	public struct Damage{
@@ -646,10 +963,15 @@ namespace SonicEngine{
 	}
 
 	public enum DamageElement{
-		Normal, Fire, Electric, Water
+		Normal,
+		Fire,
+		Electric,
+		Water
 	}
 
 	public enum DamageType{
-		Enviroment, Badnik, Projectile
+		Enviroment,
+		Badnik,
+		Projectile
 	}
 }
